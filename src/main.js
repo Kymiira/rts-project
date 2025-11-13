@@ -54,7 +54,7 @@ function zoom(factor, mouseX = canvas.width / 2, mouseY = canvas.height / 2) {
     const minScale = Math.min(canvas.width / mapPixelWidth, canvas.height / mapPixelHeight);
 
     // Clamp zoom
-    scale = Math.max(minScale, Math.min(3, scale));
+    scale = Math.max(minScale, Math.min(1, scale));
 
     // Zoom toward mouse pointer (natural zoom)
     const worldX = (mouseX / oldScale + cameraX);
