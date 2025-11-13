@@ -22,7 +22,6 @@ export class Grid {
         for (let x = 0; x < cols; x++) {
             this.tiles[x] = [];
             for (let y = 0; y < rows; y++) {
-                // Distance from center
                 const dx = x - centerX;
                 const dy = y - centerY;
                 const dist = Math.sqrt(dx * dx + dy * dy);
@@ -32,7 +31,6 @@ export class Grid {
                     type = 'grass';
                 }
 
-                // Randomly place resource on grass
                 if (type === 'grass' && Math.random() < 0.02) {
                     type = 'gold';
                 }
@@ -43,12 +41,21 @@ export class Grid {
     }
 
     draw(ctx, scale = 1, cameraX = 0, cameraY = 0) {
-        for (let x = 0; x < this.cols; x++) {
-            for (let y = 0; y < this.rows; y++) {
+        const tileSize = this.tileSize * scale;
+        const screenWidth = ctx.canvas.width;
+        const screenHeight = ctx.canvas.height;
+
+        // Only draw visible tiles based on camera position and zoom
+        const startCol = Math.floor(cameraX / this.tileSize);
+        const endCol = Math.min(this.cols, Math.ceil((cameraX + screenWidth / scale) / this.tileSize));
+        const startRow = Math.floor(cameraY / this.tileSize);
+        const endRow = Math.min(this.rows, Math.ceil((cameraY + screenHeight / scale) / this.tileSize));
+
+        for (let x = startCol; x < endCol; x++) {
+            for (let y = startRow; y < endRow; y++) {
                 const tile = this.tiles[x][y];
                 const px = (x * this.tileSize - cameraX) * scale;
                 const py = (y * this.tileSize - cameraY) * scale;
-                const size = this.tileSize * scale;
 
                 ctx.fillStyle =
                     tile.selected
@@ -58,9 +65,10 @@ export class Grid {
                         : tile.type === 'grass'
                         ? '#3a7d3a'
                         : '#aa0'; // gold
-                ctx.fillRect(px, py, size, size);
+
+                ctx.fillRect(px, py, tileSize, tileSize);
                 ctx.strokeStyle = '#222';
-                ctx.strokeRect(px, py, size, size);
+                ctx.strokeRect(px, py, tileSize, tileSize);
             }
         }
     }
