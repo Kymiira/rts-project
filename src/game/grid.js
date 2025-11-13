@@ -1,3 +1,12 @@
+export class Tile {
+    constructor(x, y, type = 'plain') {
+        this.x = x;
+        this.y = y;
+        this.type = type;
+        this.selected = false;
+    }
+}
+
 export class Grid {
     constructor(cols, rows, tileSize) {
         this.cols = cols;
@@ -13,14 +22,18 @@ export class Grid {
         }
     }
 
-    draw(ctx) {
+    draw(ctx, scale = 1, cameraX = 0, cameraY = 0) {
         for (let x = 0; x < this.cols; x++) {
             for (let y = 0; y < this.rows; y++) {
                 const tile = this.tiles[x][y];
+                const px = (x * this.tileSize - cameraX) * scale;
+                const py = (y * this.tileSize - cameraY) * scale;
+                const size = this.tileSize * scale;
+
                 ctx.fillStyle = tile.selected ? '#888' : (tile.type === 'plain' ? '#555' : '#aa0');
-                ctx.fillRect(x * this.tileSize, y * this.tileSize, this.tileSize, this.tileSize);
+                ctx.fillRect(px, py, size, size);
                 ctx.strokeStyle = '#222';
-                ctx.strokeRect(x * this.tileSize, y * this.tileSize, this.tileSize, this.tileSize);
+                ctx.strokeRect(px, py, size, size);
             }
         }
     }
