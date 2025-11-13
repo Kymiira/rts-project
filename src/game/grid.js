@@ -1,12 +1,3 @@
-export class Tile {
-    constructor(x, y, type = 'plain') {
-        this.x = x;
-        this.y = y;
-        this.type = type;
-        this.selected = false;
-    }
-}
-
 export class Grid {
     constructor(cols, rows, tileSize) {
         this.cols = cols;
@@ -41,4 +32,3 @@ export class Grid {
         return null;
     }
 }
-
