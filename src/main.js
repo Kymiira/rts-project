@@ -3,7 +3,7 @@ import { Grid } from './game/grid.js';
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-const COLS = 200; // reasonable size for demo
+const COLS = 200;
 const ROWS = 200;
 const baseTileSize = 32;
 
@@ -11,16 +11,14 @@ let grid;
 let selectedTile = null;
 let gameState = 'menu';
 
-// Zoom / camera
 let scale = 1;
 let cameraX = 0;
 let cameraY = 0;
 
-// Dragging variables
+// Dragging
 let isDragging = false;
 let dragStartX, dragStartY;
 
-// Responsive canvas
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -41,12 +39,46 @@ function toggleMenu() {
     gameState = gameState === 'playing' ? 'menu' : 'playing';
 }
 
-function zoom(factor) {
+/* -------------------------------------------------------
+   ZOOM HANDLING (bounded + centered)
+------------------------------------------------------- */
+function zoom(factor, mouseX = canvas.width / 2, mouseY = canvas.height / 2) {
+    const oldScale = scale;
     scale *= factor;
-    scale = Math.max(0.2, Math.min(3, scale));
+
+    // Compute map pixel dimensions
+    const mapPixelWidth = grid.cols * grid.tileSize;
+    const mapPixelHeight = grid.rows * grid.tileSize;
+
+    // Compute minScale so entire map fits screen
+    const minScale = Math.min(canvas.width / mapPixelWidth, canvas.height / mapPixelHeight);
+
+    // Clamp zoom
+    scale = Math.max(minScale, Math.min(3, scale));
+
+    // Zoom toward mouse pointer (natural zoom)
+    const worldX = (mouseX / oldScale + cameraX);
+    const worldY = (mouseY / oldScale + cameraY);
+    cameraX = worldX - mouseX / scale;
+    cameraY = worldY - mouseY / scale;
+
+    clampCamera();
 }
 
-// Game loop
+/* -------------------------------------------------------
+   CAMERA CLAMP
+------------------------------------------------------- */
+function clampCamera() {
+    const maxCamX = grid.cols * grid.tileSize - canvas.width / scale;
+    const maxCamY = grid.rows * grid.tileSize - canvas.height / scale;
+
+    cameraX = Math.max(0, Math.min(cameraX, maxCamX));
+    cameraY = Math.max(0, Math.min(cameraY, maxCamY));
+}
+
+/* -------------------------------------------------------
+   GAME LOOP
+------------------------------------------------------- */
 function gameLoop() {
     update();
     render();
@@ -55,7 +87,7 @@ function gameLoop() {
 
 function update() {
     if (gameState === 'playing') {
-        // Placeholder for future RTS logic
+        // Future RTS logic goes here
     }
 }
 
@@ -63,17 +95,15 @@ function render() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (grid) {
-        const gridWidth = grid.cols * grid.tileSize * scale;
-        const gridHeight = grid.rows * grid.tileSize * scale;
-        const offsetX = (canvas.width - gridWidth) / 2;
-        const offsetY = (canvas.height - gridHeight) / 2;
-
-        grid.draw(ctx, scale, -offsetX / scale + cameraX, -offsetY / scale + cameraY);
+        grid.draw(ctx, scale, cameraX, cameraY);
     }
 
     if (gameState === 'menu') drawMenu();
 }
 
+/* -------------------------------------------------------
+   MENU
+------------------------------------------------------- */
 function drawMenu() {
     ctx.fillStyle = 'rgba(0,0,0,0.7)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -91,7 +121,9 @@ function drawMenu() {
     );
 }
 
-// Tile selection with zoom and camera offset
+/* -------------------------------------------------------
+   TILE SELECTION
+------------------------------------------------------- */
 canvas.addEventListener('click', (e) => {
     if (gameState !== 'playing') return;
 
@@ -107,7 +139,9 @@ canvas.addEventListener('click', (e) => {
     }
 });
 
-// Camera dragging
+/* -------------------------------------------------------
+   CAMERA DRAGGING
+------------------------------------------------------- */
 canvas.addEventListener('mousedown', (e) => {
     if (gameState !== 'playing') return;
     isDragging = true;
@@ -131,17 +165,22 @@ canvas.addEventListener('mousemove', (e) => {
     dragStartX = e.clientX;
     dragStartY = e.clientY;
 
-    // Clamp camera
-    cameraX = Math.max(0, Math.min(cameraX, grid.cols * grid.tileSize - canvas.width / scale));
-    cameraY = Math.max(0, Math.min(cameraY, grid.rows * grid.tileSize - canvas.height / scale));
+    clampCamera();
 });
 
-// Keyboard controls
+/* -------------------------------------------------------
+   KEYBOARD + MOUSE INPUT
+------------------------------------------------------- */
 window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') toggleMenu();
     if (e.key === 'Enter' && gameState === 'menu') initGame();
-    if (e.key === '+') zoom(1.1);
-    if (e.key === '-') zoom(0.9);
+});
+
+canvas.addEventListener('wheel', (e) => {
+    if (gameState !== 'playing') return;
+    const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+    zoom(zoomFactor, e.clientX, e.clientY);
+    e.preventDefault();
 });
 
 requestAnimationFrame(gameLoop);
