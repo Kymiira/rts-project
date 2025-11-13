@@ -3,19 +3,22 @@ import { Grid } from './game/grid.js';
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// Game grid settings
-const COLS = 32;
-const ROWS = 24;
+const COLS = 200; // reasonable size for demo
+const ROWS = 200;
 const baseTileSize = 32;
 
 let grid;
 let selectedTile = null;
-let gameState = 'menu'; // 'menu' or 'playing'
+let gameState = 'menu';
 
 // Zoom / camera
 let scale = 1;
 let cameraX = 0;
 let cameraY = 0;
+
+// Dragging variables
+let isDragging = false;
+let dragStartX, dragStartY;
 
 // Responsive canvas
 function resizeCanvas() {
@@ -25,28 +28,22 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// Get current tile size based on zoom
 function getTileSize() {
     return baseTileSize;
 }
 
-// Initialize game
 function initGame() {
     grid = new Grid(COLS, ROWS, getTileSize());
     gameState = 'playing';
 }
 
-// Toggle in-game menu
 function toggleMenu() {
-    gameState = (gameState === 'playing') ? 'menu' : 'playing';
+    gameState = gameState === 'playing' ? 'menu' : 'playing';
 }
 
-// Zoom function
 function zoom(factor) {
-    const oldScale = scale;
     scale *= factor;
-    scale = Math.max(0.2, Math.min(3, scale)); // clamp zoom
-    // Optional: adjust cameraX/Y to zoom around center (future improvement)
+    scale = Math.max(0.2, Math.min(3, scale));
 }
 
 // Game loop
@@ -58,18 +55,25 @@ function gameLoop() {
 
 function update() {
     if (gameState === 'playing') {
-        // Placeholder for future real-time RTS logic
+        // Placeholder for future RTS logic
     }
 }
 
 function render() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (grid) grid.draw(ctx, scale, cameraX, cameraY);
+
+    if (grid) {
+        const gridWidth = grid.cols * grid.tileSize * scale;
+        const gridHeight = grid.rows * grid.tileSize * scale;
+        const offsetX = (canvas.width - gridWidth) / 2;
+        const offsetY = (canvas.height - gridHeight) / 2;
+
+        grid.draw(ctx, scale, -offsetX / scale + cameraX, -offsetY / scale + cameraY);
+    }
 
     if (gameState === 'menu') drawMenu();
 }
 
-// Menu overlay
 function drawMenu() {
     ctx.fillStyle = 'rgba(0,0,0,0.7)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -80,10 +84,14 @@ function drawMenu() {
     ctx.fillText('Homebrew RTS', canvas.width / 2, canvas.height / 2 - 40);
 
     ctx.font = '24px sans-serif';
-    ctx.fillText('Press ENTER to Start / ESC to Toggle Menu', canvas.width / 2, canvas.height / 2 + 20);
+    ctx.fillText(
+        'Press ENTER to Start / ESC to Toggle Menu',
+        canvas.width / 2,
+        canvas.height / 2 + 20
+    );
 }
 
-// Mouse click: select tiles (accounts for zoom)
+// Tile selection with zoom and camera offset
 canvas.addEventListener('click', (e) => {
     if (gameState !== 'playing') return;
 
@@ -99,13 +107,41 @@ canvas.addEventListener('click', (e) => {
     }
 });
 
-// Keyboard input
+// Camera dragging
+canvas.addEventListener('mousedown', (e) => {
+    if (gameState !== 'playing') return;
+    isDragging = true;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+});
+
+canvas.addEventListener('mouseup', () => {
+    isDragging = false;
+});
+
+canvas.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+
+    const dx = (dragStartX - e.clientX) / scale;
+    const dy = (dragStartY - e.clientY) / scale;
+
+    cameraX += dx;
+    cameraY += dy;
+
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+
+    // Clamp camera
+    cameraX = Math.max(0, Math.min(cameraX, grid.cols * grid.tileSize - canvas.width / scale));
+    cameraY = Math.max(0, Math.min(cameraY, grid.rows * grid.tileSize - canvas.height / scale));
+});
+
+// Keyboard controls
 window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') toggleMenu();
     if (e.key === 'Enter' && gameState === 'menu') initGame();
-    if (e.key === '+') zoom(1.1);  // zoom in
-    if (e.key === '-') zoom(0.9);  // zoom out
+    if (e.key === '+') zoom(1.1);
+    if (e.key === '-') zoom(0.9);
 });
 
-// Start the game loop
 requestAnimationFrame(gameLoop);
