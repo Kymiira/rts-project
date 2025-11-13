@@ -57,7 +57,7 @@ function getMinScale() {
 
 function getMaxScale() {
     const minScale = getMinScale();
-    return minScale * 12;
+    return minScale * 3;
 }
 
 function clampCamera() {
