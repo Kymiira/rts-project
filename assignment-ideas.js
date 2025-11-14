@@ -1,0 +1,1 @@
+/ for t2a21 create basic game, player physics + ground,hazards,wincondition. utilize a base "game object" class then extend said class to create hazards, player, win condition. main class should handle collision.
